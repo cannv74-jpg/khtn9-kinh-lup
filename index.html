@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Trắc Nghiệm: Thấu kính - Kính lúp</title>
+    <!-- Cấu hình MathJax để nhận diện dấu $ cho công thức nội dòng -->
+    <script type="text/x-mathjax-config">
+        MathJax.Hub.Config({
+            tex2jax: {
+                inlineMath: [['$','$'], ['\\(','\\)']],
+                processEscapes: true
+            }
+        });
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header-info {
+            background: #e2e8f0;
+            padding: 10px;
+            font-size: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #cbd5e0;
+        }
+
+        .screen {
+            display: none;
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .title-3d {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #d4af37;
+            text-shadow: 2px 2px 0px #b8860b, 4px 4px 0px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 10px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4299e1;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            user-select: none;
+        }
+
+        .btn-primary { background: #4299e1; color: white; }
+        .btn-primary:hover { background: #3182ce; }
+        .btn-next { background: #48bb78; color: white; }
+        .btn-back { background: #a0aec0; color: white; }
+
+        .question-box {
+            background: #f7fafc;
+            border-left: 5px solid #4299e1;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-size: 1.1rem;
+        }
+
+        .option-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-card:hover { border-color: #4299e1; background: #ebf8ff; }
+        .option-card.selected { background: #4299e1; color: white; border-color: #2b6cb0; }
+
+        .true-false-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .tf-btns {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-tf {
+            padding: 5px 10px;
+            font-size: 0.8rem;
+            border-radius: 5px;
+            border: 1px solid #cbd5e0;
+            cursor: pointer;
+        }
+
+        .btn-tf.active-true { background: #48bb78; color: white; border-color: #38a169; }
+        .btn-tf.active-false { background: #f56565; color: white; border-color: #e53e3e; }
+
+        .footer {
+            padding: 10px;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #718096;
+            background: #f7fafc;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .timer {
+            font-weight: bold;
+            color: #e53e3e;
+            text-align: right;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .hidden { display: none; }
+
+        .feedback-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+        }
+
+        .correct { color: #38a169; font-weight: bold; }
+        .incorrect { color: #e53e3e; font-weight: bold; }
+        
+        .math-text { font-family: 'Times New Roman', serif; font-style: italic; }
+    </style>
+</head>
+<body>
+
+<div class="game-container" id="app">
+    <!-- Header -->
+    <div id="user-header" class="header-info hidden">
+        <div><span id="display-name"></span> - <span id="display-sbd"></span></div>
+        <div><span id="display-class"></span> - <span id="display-school"></span></div>
+    </div>
+
+    <!-- Screen 1: Welcome & Info -->
+    <div id="screen-welcome" class="screen active">
+        <div style="text-align: center; margin-bottom: 10px;">
+            <svg viewBox="0 0 24 24" width="80" height="80" style="margin: 0 auto;">
+                <path fill="#4299e1" d="M12,3L1,9L12,15L21,10.09V17H23V9M5,13.18V17.18L12,21L19,17.18V13.18L12,17L5,13.18Z" />
+            </svg>
+        </div>
+        <h1 class="title-3d">THẤU KÍNH - KÍNH LÚP</h1>
+        <div class="input-group">
+            <label>Số báo danh:</label>
+            <input type="text" id="input-sbd" placeholder="Nhập SBD...">
+        </div>
+        <div class="input-group">
+            <label>Họ và tên:</label>
+            <input type="text" id="input-name" placeholder="Nhập họ và tên...">
+        </div>
+        <div class="input-group">
+            <label>Lớp:</label>
+            <input type="text" id="input-class" placeholder="Nhập lớp...">
+        </div>
+        <div class="input-group">
+            <label>Trường:</label>
+            <input type="text" id="input-school" placeholder="Nhập trường...">
+        </div>
+        <div class="btn btn-primary mt-4" onclick="startGame()">BẮT ĐẦU TRÒ CHƠI</div>
+    </div>
+
+    <!-- Screen 2: Quiz Play -->
+    <div id="screen-quiz" class="screen">
+        <div class="timer" id="timer">90s</div>
+        <div id="part-title" class="font-bold text-blue-600 mb-2">PHẦN I. TRẮC NGHIỆM ĐA LỰA CHỌN</div>
+        <div id="question-count" class="text-sm mb-2">Câu 1/20</div>
+        
+        <div id="quiz-content">
+            <!-- Content dynamic inject -->
+        </div>
+
+        <div class="flex justify-between mt-6">
+            <div class="btn btn-back" id="btn-back" onclick="prevQuestion()">QUAY LẠI</div>
+            <div class="btn btn-next" id="btn-next" onclick="nextQuestion()">TIẾP THEO</div>
+        </div>
+    </div>
+
+    <!-- Screen 3: Results -->
+    <div id="screen-result" class="screen">
+        <h2 class="text-2xl font-bold text-center mb-4">KẾT QUẢ BÀI LÀM</h2>
+        <div id="final-score" class="text-4xl font-bold text-center text-blue-600 mb-2">0.0/7.0</div>
+        <div id="rank" class="text-xl font-bold text-center mb-6">XẾP LOẠI: -</div>
+        
+        <div class="grid grid-cols-3 gap-2 mb-6 text-center text-sm">
+            <div class="bg-blue-100 p-2 rounded">Phần I: <span id="score-p1">0</span></div>
+            <div class="bg-green-100 p-2 rounded">Phần II: <span id="score-p2">0</span></div>
+            <div class="bg-yellow-100 p-2 rounded">Phần III: <span id="score-p3">0</span></div>
+        </div>
+
+        <div class="btn btn-primary mb-4" onclick="toggleReview()">XEM LẠI BÀI LÀM</div>
+        <div id="review-section" class="hidden">
+            <!-- Review items -->
+        </div>
+        <div class="btn btn-back" onclick="location.reload()">CHƠI LẠI</div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        Bản quyền thuộc về Thạc sĩ Nguyễn Văn Cần, Thành phố Huế
+    </div>
+</div>
+
+<audio id="snd-ping" src="https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3"></audio>
+<audio id="snd-bell" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+
+<script>
+    // --- DATABASE ---
+    const bankP1 = [
+        { q: "Thấu kính hội tụ là loại thấu kính có", options: ["phần rìa mỏng hơn phần giữa.", "phần rìa dày hơn phần giữa.", "độ dày các phần bằng nhau.", "phần giữa lõm vào."], correct: 0 },
+        { q: "Kí hiệu của thấu kính hội tụ trong sơ đồ quang học là", options: ["đoạn thẳng có hai đầu mũi tên hướng ra ngoài.", "đoạn thẳng có hai đầu mũi tên hướng vào trong.", "đoạn thẳng không có mũi tên.", "đường cong lồi."], correct: 0 },
+        { q: "Đường thẳng đi qua quang tâm và vuông góc với mặt thấu kính gọi là", options: ["trục chính.", "trục phụ.", "tiêu diện.", "pháp tuyến."], correct: 0 },
+        { q: "Một chùm sáng song song với trục chính đi qua thấu kính hội tụ sẽ", options: ["hội tụ tại tiêu điểm của thấu kính.", "loe rộng ra thành chùm phân kì.", "tiếp tục truyền thẳng.", "bị phản xạ trở lại."], correct: 0 },
+        { q: "Thấu kính phân kì là loại thấu kính có", options: ["phần rìa dày hơn phần giữa.", "phần rìa mỏng hơn phần giữa.", "phần rìa và giữa dày như nhau.", "mặt lồi ra phía ngoài."], correct: 0 },
+        { q: "Kính lúp thực chất là một", options: ["thấu kính hội tụ có tiêu cự ngắn.", "thấu kính phân kì có tiêu cự ngắn.", "thấu kính hội tụ có tiêu cự dài.", "thấu kính phân kì có tiêu cự dài."], correct: 0 },
+        { q: "Để quan sát vật qua kính lúp, ta phải đặt vật ở vị trí nào?", options: ["Trong khoảng tiêu cự của kính.", "Tại tiêu điểm của kính.", "Ngoài khoảng tiêu cự của kính.", "Cách kính một khoảng bất kì."], correct: 0 },
+        { q: "Ảnh của một vật tạo bởi kính lúp là", options: ["ảnh ảo, cùng chiều, lớn hơn vật.", "ảnh thật, ngược chiều, lớn hơn vật.", "ảnh ảo, cùng chiều, nhỏ hơn vật.", "ảnh thật, ngược chiều, nhỏ hơn vật."], correct: 0 },
+        { q: "Tiêu cự của thấu kính kí hiệu là $f$, đơn vị thường dùng là", options: ["cm hoặc m.", "kg.", "N.", "m/s."], correct: 0 },
+        { q: "Tia sáng đi qua quang tâm O của thấu kính thì", options: ["tiếp tục truyền thẳng.", "bị gãy khúc đi qua tiêu điểm.", "phản xạ ngược lại.", "bị lệch về phía trục chính."], correct: 0 },
+        { q: "Một vật đặt rất xa thấu kính hội tụ sẽ cho ảnh nằm ở đâu?", options: ["Tại tiêu điểm.", "Tại quang tâm.", "Ở vô cực.", "Trong khoảng tiêu cự."], correct: 0 },
+        { q: "Ảnh tạo bởi thấu kính phân kì luôn có đặc điểm là", options: ["ảnh ảo, cùng chiều, nhỏ hơn vật.", "ảnh thật, ngược chiều, nhỏ hơn vật.", "ảnh ảo, ngược chiều, lớn hơn vật.", "ảnh thật, cùng chiều, lớn hơn vật."], correct: 0 },
+        { q: "Công thức liên hệ giữa số bội giác $G$ và tiêu cự $f$ (đơn vị cm) của kính lúp là", options: ["$G = 25/f$.", "$G = f/25$.", "$G = 25.f$.", "$G = 1/f$."], correct: 0 },
+        { q: "Khi dùng kính lúp, mắt ta quan sát thấy cái gì?", options: ["Ảnh ảo của vật.", "Vật thật.", "Ảnh thật của vật.", "Ảnh ảo nhỏ hơn vật."], correct: 0 },
+        { q: "Nếu một thấu kính hội tụ có tiêu cự $f = 10$ cm, số bội giác của nó là", options: ["2,5.", "10.", "25.", "5."], correct: 0 },
+        { q: "Thấu kính phân kì KHÔNG có ứng dụng nào sau đây?", options: ["Làm kính lúp.", "Làm kính cận.", "Làm ống nhòm.", "Làm đèn sát trùng."], correct: 0 },
+        { q: "Điểm mà mọi tia sáng tới song song với trục chính đều đi qua sau khi khúc xạ gọi là", options: ["tiêu điểm.", "quang tâm.", "tâm mặt cầu.", "điểm cực cận."], correct: 0 },
+        { q: "Khoảng cách từ quang tâm đến tiêu điểm gọi là", options: ["tiêu cự.", "độ tụ.", "đường kính.", "bán kính thấu kính."], correct: 0 },
+        { q: "Vật đặt tại vị trí nào của thấu kính hội tụ thì cho ảnh ảo?", options: ["Trong khoảng tiêu cự.", "Ngoài khoảng tiêu cự.", "Tại tiêu điểm.", "Rất xa thấu kính."], correct: 0 },
+        { q: "Đặc điểm của chùm sáng sau khi đi qua thấu kính phân kì là", options: ["chùm phân kì.", "chùm hội tụ.", "chùm song song.", "chùm đơn sắc."], correct: 0 },
+        { q: "Một thấu kính có phần giữa mỏng hơn phần rìa, đó là", options: ["thấu kính phân kì.", "thấu kính hội tụ.", "gương phẳng.", "gương cầu lồi."], correct: 0 },
+        { q: "Kính lúp có số bội giác $G = 5x$ thì tiêu cự của nó là", options: ["5 cm.", "25 cm.", "125 cm.", "1 cm."], correct: 0 },
+        { q: "Tia tới song song với trục chính của thấu kính phân kì cho tia ló có đường kéo dài đi qua", options: ["tiêu điểm vật.", "quang tâm.", "tiêu điểm ảnh.", "điểm bất kì."], correct: 0 },
+        { q: "Khi đưa vật ra xa thấu kính hội tụ từ vị trí sát thấu kính, ảnh ảo sẽ", options: ["càng lớn và càng xa thấu kính.", "càng nhỏ và càng gần thấu kính.", "không thay đổi kích thước.", "biến thành ảnh thật ngay lập tức."], correct: 1 }
+    ];
+
+    const bankP2 = [
+        {
+            context: "Một học sinh thực hiện thí nghiệm với một thấu kính hội tụ có tiêu cự $f = 12$ cm. Học sinh đặt vật sáng $AB$ vuông góc với trục chính của thấu kính.",
+            items: [
+                { text: "a) Khi đặt vật cách thấu kính 20 cm, thấu kính cho ảnh thật, ngược chiều vật.", ans: true },
+                { text: "b) Khi đặt vật cách thấu kính 10 cm, thấu kính cho ảnh thật, cùng chiều vật.", ans: false }, // Phải là ảnh ảo
+                { text: "c) Để quan sát được ảnh ảo, khoảng cách từ vật đến thấu kính phải nhỏ hơn 12 cm.", ans: true },
+                { text: "d) Khi vật đặt tại tiêu điểm, ảnh của vật sẽ hiện rõ nét trên màn chắn.", ans: false } // Ở vô cực
+            ]
+        },
+        {
+            context: "Kính lúp là một dụng cụ quang học bổ trợ cho mắt để quan sát các vật nhỏ. Trên một kính lúp có ghi $10x$.",
+            items: [
+                { text: "a) Kính lúp này là một thấu kính phân kì.", ans: false },
+                { text: "b) Số $10x$ cho biết số bội giác của kính là 10.", ans: true },
+                { text: "c) Tiêu cự của kính lúp này là 2,5 cm.", ans: true },
+                { text: "d) Khi dùng kính lúp, ta đặt vật ở bất kì đâu cũng nhìn thấy ảnh rõ nét.", ans: false }
+            ]
+        },
+        {
+            context: "Xét đặc điểm của thấu kính hội tụ và thấu kính phân kì trong không khí.",
+            items: [
+                { text: "a) Thấu kính hội tụ có tác dụng hội tụ chùm tia tới song song tại tiêu điểm ảnh.", ans: true },
+                { text: "b) Thấu kính phân kì luôn tạo ra ảnh thật nhỏ hơn vật.", ans: false },
+                { text: "c) Quang tâm O là điểm nằm chính giữa thấu kính mà mọi tia sáng qua đó đều truyền thẳng.", ans: true },
+                { text: "d) Một thấu kính có thể có nhiều tiêu điểm nằm trên trục chính.", ans: false } // Chỉ có 2 tiêu điểm F, F'
+            ]
+        },
+        {
+            context: "Một người sử dụng kính lúp để đọc những dòng chữ rất nhỏ trên một con tem.",
+            items: [
+                { text: "a) Để đọc được rõ, người đó phải đặt con tem trong khoảng tiêu cự của kính.", ans: true },
+                { text: "b) Ảnh mà người đó nhìn thấy qua kính là ảnh thật.", ans: false },
+                { text: "c) Nếu dùng kính có tiêu cự càng lớn thì số bội giác càng nhỏ.", ans: true },
+                { text: "d) Kính lúp giúp làm tăng góc trông ảnh của vật so với khi nhìn trực tiếp.", ans: true }
+            ]
+        }
+    ];
+
+    const bankP3 = [
+        { q: "Một kính lúp có tiêu cự 5 cm. Tính số bội giác của kính lúp này.", ans: "5" },
+        { q: "Một kính lúp có ghi $8x$. Tính tiêu cự của kính lúp này theo đơn vị cm (làm tròn đến 2 chữ số thập phân).", ans: "3,13" },
+        { q: "Vật $AB$ đặt cách thấu kính hội tụ 30 cm, tiêu cự thấu kính là 15 cm. Tính khoảng cách từ ảnh đến thấu kính (đơn vị cm).", ans: "30" },
+        { q: "Sắp xếp các bước vẽ ảnh của vật qua thấu kính:\n1. Vẽ tia qua quang tâm.\n2. Vẽ vật AB.\n3. Vẽ tia song song trục chính.\n4. Xác định giao điểm B' của các tia ló.\nGhi đáp án bằng dãy số tăng dần.", ans: "1234" },
+        { q: "Một thấu kính hội tụ có tiêu cự 20 cm. Vật đặt cách thấu kính 60 cm. Tính độ phóng đại của ảnh (lấy giá trị tuyệt đối).", ans: "0,5" },
+        { q: "Chọn các nhận định ĐÚNG về thấu kính phân kì:\n1. Luôn cho ảnh ảo.\n2. Rìa dày hơn giữa.\n3. Làm kính lúp.\n4. Biến chùm song song thành chùm phân kì.\nGhi đáp án bằng dãy số tăng dần.", ans: "124" },
+        { q: "Số bội giác của một kính lúp là 4. Nếu ta thay bằng kính có tiêu cự 2,5 cm thì số bội giác mới là bao nhiêu?", ans: "10" },
+        { q: "Vật đặt tại tiêu điểm của thấu kính hội tụ cho ảnh ở đâu? (Nhập: 0 nếu ở vô cực, hoặc giá trị cụ thể).", ans: "0" }
+    ];
+
+    // --- GAME LOGIC ---
+    let sessionQuestions = [];
+    let currentIdx = 0;
+    let answers = {};
+    let timerInterval;
+    let timeLeft = 90;
+    let user = { sbd: '', name: '', class: '', school: '' };
+
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    function startGame() {
+        user.sbd = document.getElementById('input-sbd').value;
+        user.name = document.getElementById('input-name').value;
+        user.class = document.getElementById('input-class').value;
+        user.school = document.getElementById('input-school').value;
+
+        if (!user.sbd || !user.name) {
+            alert("Vui lòng nhập đầy đủ Số báo danh và Họ tên!");
+            return;
+        }
+
+        document.getElementById('display-name').innerText = user.name;
+        document.getElementById('display-sbd').innerText = user.sbd;
+        document.getElementById('display-class').innerText = user.class;
+        document.getElementById('display-school').innerText = user.school;
+        document.getElementById('user-header').classList.remove('hidden');
+
+        // Setup questions
+        const p1 = shuffle([...bankP1]).slice(0, 12);
+        const p2 = shuffle([...bankP2]).slice(0, 4);
+        const p3 = shuffle([...bankP3]).slice(0, 4);
+        
+        sessionQuestions = [
+            ...p1.map(q => ({...q, type: 'P1'})),
+            ...p2.map(q => ({...q, type: 'P2'})),
+            ...p3.map(q => ({...q, type: 'P3'}))
+        ];
+
+        showScreen('screen-quiz');
+        renderQuestion();
+        playSnd('snd-bell');
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function renderQuestion() {
+        const q = sessionQuestions[currentIdx];
+        const container = document.getElementById('quiz-content');
+        const title = document.getElementById('part-title');
+        const count = document.getElementById('question-count');
+        
+        count.innerText = `Câu ${currentIdx + 1}/20`;
+        container.innerHTML = '';
+
+        // Timer setup
+        clearInterval(timerInterval);
+        if (q.type === 'P1') {
+            title.innerText = "PHẦN I. TRẮC NGHIỆM ĐA LỰA CHỌN (0,25đ/câu)";
+            timeLeft = 90;
+        } else if (q.type === 'P2') {
+            title.innerText = "PHẦN II. TRẮC NGHIỆM ĐÚNG/SAI (Tối đa 0,5đ/câu)";
+            timeLeft = 120;
+        } else {
+            title.innerText = "PHẦN III. TRẮC NGHIỆM TRẢ LỜI NGẮN (0,5đ/câu)";
+            timeLeft = 120;
+        }
+        startTimer();
+
+        if (q.type === 'P1') {
+            const qBox = document.createElement('div');
+            qBox.className = 'question-box';
+            qBox.innerHTML = `Câu ${currentIdx + 1}. ${q.q}`;
+            container.appendChild(qBox);
+
+            q.options.forEach((opt, i) => {
+                const card = document.createElement('div');
+                card.className = `option-card ${answers[currentIdx] === i ? 'selected' : ''}`;
+                card.innerHTML = `${String.fromCharCode(65 + i)}. ${opt}`;
+                card.onclick = () => {
+                    answers[currentIdx] = i;
+                    renderQuestion();
+                    playSnd('snd-ping');
+                };
+                container.appendChild(card);
+            });
+        } else if (q.type === 'P2') {
+            const qBox = document.createElement('div');
+            qBox.className = 'question-box';
+            qBox.innerHTML = `Câu ${currentIdx - 11}. ${q.context}`;
+            container.appendChild(qBox);
+
+            if (!answers[currentIdx]) answers[currentIdx] = [null, null, null, null];
+
+            q.items.forEach((item, i) => {
+                const row = document.createElement('div');
+                row.className = 'true-false-row';
+                row.innerHTML = `<div class="pr-2">${item.text}</div>
+                    <div class="tf-btns">
+                        <div class="btn-tf ${answers[currentIdx][i] === true ? 'active-true' : ''}" onclick="setTF(${i}, true)">ĐÚNG</div>
+                        <div class="btn-tf ${answers[currentIdx][i] === false ? 'active-false' : ''}" onclick="setTF(${i}, false)">SAI</div>
+                    </div>`;
+                container.appendChild(row);
+            });
+        } else {
+            const qBox = document.createElement('div');
+            qBox.className = 'question-box';
+            qBox.innerHTML = `Câu ${currentIdx - 15}. ${q.q}`;
+            container.appendChild(qBox);
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Nhập đáp án...';
+            input.value = answers[currentIdx] || '';
+            input.oninput = (e) => answers[currentIdx] = e.target.value;
+            container.appendChild(input);
+        }
+
+        document.getElementById('btn-back').style.visibility = currentIdx === 0 ? 'hidden' : 'visible';
+        document.getElementById('btn-next').innerText = currentIdx === 19 ? 'NỘP BÀI' : 'TIẾP THEO';
+
+        // Gọi MathJax render lại nội dung vừa tạo
+        if (window.MathJax) {
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, container]);
+        }
+    }
+
+    function setTF(subIdx, val) {
+        answers[currentIdx][subIdx] = val;
+        renderQuestion();
+        playSnd('snd-ping');
+    }
+
+    function startTimer() {
+        const timerEl = document.getElementById('timer');
+        timerEl.innerText = timeLeft + 's';
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerEl.innerText = timeLeft + 's';
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                nextQuestion();
+            }
+        }, 1000);
+    }
+
+    function nextQuestion() {
+        if (currentIdx < 19) {
+            currentIdx++;
+            renderQuestion();
+        } else {
+            finishGame();
+        }
+    }
+
+    function prevQuestion() {
+        if (currentIdx > 0) {
+            currentIdx--;
+            renderQuestion();
+        }
+    }
+
+    function finishGame() {
+        clearInterval(timerInterval);
+        playSnd('snd-bell');
+        
+        let scoreP1 = 0, scoreP2 = 0, scoreP3 = 0;
+
+        sessionQuestions.forEach((q, i) => {
+            const userAns = answers[i];
+            if (q.type === 'P1') {
+                if (userAns === q.correct) scoreP1 += 0.25;
+            } else if (q.type === 'P2') {
+                let correctCount = 0;
+                q.items.forEach((item, j) => {
+                    if (userAns && userAns[j] === item.ans) correctCount++;
+                });
+                if (correctCount === 1) scoreP2 += 0.0625;
+                else if (correctCount === 2) scoreP2 += 0.125;
+                else if (correctCount === 3) scoreP2 += 0.25;
+                else if (correctCount === 4) scoreP2 += 0.5;
+            } else {
+                if (userAns && userAns.toString().trim().toLowerCase() === q.ans.toString().toLowerCase()) {
+                    scoreP3 += 0.5;
+                }
+            }
+        });
+
+        const total = (scoreP1 + scoreP2 + scoreP3).toFixed(1);
+        document.getElementById('final-score').innerText = `${total}/7.0`;
+        document.getElementById('score-p1').innerText = scoreP1.toFixed(2);
+        document.getElementById('score-p2').innerText = scoreP2.toFixed(4);
+        document.getElementById('score-p3').innerText = scoreP3.toFixed(1);
+
+        let rank = "";
+        if (total >= 6) rank = "XUẤT SẮC";
+        else if (total >= 5) rank = "GIỎI";
+        else if (total >= 4) rank = "KHÁ";
+        else if (total >= 3) rank = "ĐẠT";
+        else rank = "CHƯA ĐẠT";
+        document.getElementById('rank').innerText = `XẾP LOẠI: ${rank}`;
+
+        buildReview();
+        showScreen('screen-result');
+    }
+
+    function buildReview() {
+        const review = document.getElementById('review-section');
+        review.innerHTML = '';
+        sessionQuestions.forEach((q, i) => {
+            const div = document.createElement('div');
+            div.className = 'feedback-item';
+            let html = `<strong>Câu ${i+1}:</strong> ${q.q || q.context}<br>`;
+            
+            if (q.type === 'P1') {
+                const isCorrect = answers[i] === q.correct;
+                html += `Bạn chọn: ${answers[i] !== undefined ? String.fromCharCode(65 + answers[i]) : 'Chưa chọn'} - `;
+                html += `<span class="${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'ĐÚNG' : 'SAI'}</span><br>`;
+                html += `Đáp án đúng: ${String.fromCharCode(65 + q.correct)}.`;
+            } else if (q.type === 'P2') {
+                q.items.forEach((item, j) => {
+                    const userVal = (answers[i] && answers[i][j] !== null) ? (answers[i][j] ? 'ĐÚNG' : 'SAI') : 'Chưa chọn';
+                    const correctVal = item.ans ? 'ĐÚNG' : 'SAI';
+                    html += `<div class="ml-4">- ${item.text}: Bạn chọn ${userVal} (${userVal === correctVal ? 'ĐÚNG' : 'SAI'})</div>`;
+                });
+            } else {
+                const isCorrect = answers[i] && answers[i].toString().trim().toLowerCase() === q.ans.toString().toLowerCase();
+                html += `Bạn ghi: ${answers[i] || 'Trống'} - `;
+                html += `<span class="${isCorrect ? 'correct' : 'incorrect'}">${isCorrect ? 'ĐÚNG' : 'SAI'}</span><br>`;
+                html += `Đáp án đúng: ${q.ans}.`;
+            }
+            div.innerHTML = html;
+            review.appendChild(div);
+        });
+        
+        // Render MathJax cho phần xem lại bài làm
+        if (window.MathJax) {
+            MathJax.Hub.Queue(["Typeset", MathJax.Hub, review]);
+        }
+    }
+
+    function toggleReview() {
+        const section = document.getElementById('review-section');
+        section.classList.toggle('hidden');
+    }
+
+    function playSnd(id) {
+        const audio = document.getElementById(id);
+        if (audio) {
+            audio.currentTime = 0;
+            audio.play().catch(() => {});
+        }
+    }
+
+</script>
+</body>
+</html>
